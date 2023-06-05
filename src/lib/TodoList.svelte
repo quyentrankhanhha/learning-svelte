@@ -17,6 +17,7 @@
 	export let error = null;
 	export let isLoading = false;
 	export let disabledAdding = false;
+	export let disabledItems = [];
 
 	let prevTodos = todos;
 	let inputText = '';
@@ -64,24 +65,31 @@
 					<p class="no-items-text">No todos yet</p>
 				{:else}
 					<ul>
-						{#each todos as { id, title, completed }, index (id)}
-							<li class:completed>
-								<label>
-									<input
-										on:input={(event) => {
-											event.currentTarget.checked = completed;
-											handleToggleTodo(id, !completed);
-										}}
-										type="checkbox"
-										checked={completed}
-									/>
-									{title}
-								</label>
-								<button
-									class="remove-todo-button"
-									aria-label="Remove todo: {title}"
-									on:click={() => handleRemoveTodo(id)}>Remove</button
-								>
+						{#each todos as todo, index (todo.id)}
+							{@const { id, title, completed } = todo}
+							<li>
+								<slot {todo} {index} {handleToggleTodo}>
+									<div class:completed>
+										<label>
+											<input
+												on:input={(event) => {
+													event.currentTarget.checked = completed;
+													handleToggleTodo(id, !completed);
+												}}
+												type="checkbox"
+												checked={completed}
+												disabled={disabledItems.includes(id)}
+											/>
+											<slot name="title">{title}</slot>
+										</label>
+										<button
+											class="remove-todo-button"
+											aria-label="Remove todo: {title}"
+											on:click={() => handleRemoveTodo(id)}
+											disabled={disabledItems.includes(id)}>Remove</button
+										>
+									</div>
+								</slot>
 							</li>
 						{/each}
 					</ul>

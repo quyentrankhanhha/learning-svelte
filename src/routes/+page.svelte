@@ -11,6 +11,7 @@
 	let error = null;
 	let isLoading = false;
 	let isAdding = false;
+	let disabledItems = [];
 
 	onMount(() => {
 		loadTodos();
@@ -31,6 +32,7 @@
 	async function handleAddTodo(event) {
 		event.preventDefault();
 		isAdding = true;
+
 		await fetch('https://jsonplaceholder.typicode.com/todos', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json; charset=UTF-8' },
@@ -47,23 +49,54 @@
 				alert('An error occured while adding the todo');
 			}
 		});
+
 		isAdding = false;
 		await tick();
 		todoList.focusInput();
 	}
 
-	function handleRemoveTodo(event) {
-		todos = todos.filter((todo) => todo.id !== event.detail.id);
+	async function handleRemoveTodo(event) {
+		const id = event.detail.id;
+		if (disabledItems.includes(id)) return;
+		disabledItems = [...disabledItems, id];
+
+		await fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+			method: 'DELETE'
+		}).then(async (response) => {
+			if (response.ok) {
+				todos = todos.filter((todo) => todo.id !== id);
+			} else {
+				alert('An error occured while removing the todo');
+			}
+		});
+		disabledItems = disabledItems.filter((itemId) => itemId !== id);
 	}
 
-	function handleToggleTodo(event) {
-		todos = todos.map((todo) => {
-			if (todo.id === event.detail.id) {
-				return { ...todo, completed: event.detail.value };
-			}
+	async function handleToggleTodo(event) {
+		const id = event.detail.id;
+		const value = event.detail.value;
+		if (disabledItems.includes(id)) return;
+		disabledItems = [...disabledItems, id];
 
-			return { ...todo };
+		await fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ completed: value }),
+			headers: { 'Content-Type': 'application/json; charset=UTF-8' }
+		}).then(async (response) => {
+			if (response.ok) {
+				const updatedTodo = await response.json();
+				todos = todos.map((todo) => {
+					if (todo.id === id) {
+						return updatedTodo;
+					}
+
+					return { ...todo };
+				});
+			} else {
+				alert('An error occured while removing the todo');
+			}
 		});
+		disabledItems = disabledItems.filter((itemId) => itemId !== id);
 	}
 </script>
 
@@ -71,15 +104,21 @@
 	<input type="checkbox" bind:checked={showList} /> Show/ Hide List
 </label>
 {#if showList}
-	<div style:max-width="400px" />
-	<TodoList
-		{todos}
-		{isLoading}
-		{error}
-		disabledAdding={isAdding}
-		bind:this={todoList}
-		on:addTodo={handleAddTodo}
-		on:removeTodo={handleRemoveTodo}
-		on:toggleTodo={handleToggleTodo}
-	/>
+	<div style:max-width="400px">
+		<TodoList
+			{todos}
+			{isLoading}
+			{error}
+			{disabledItems}
+			disabledAdding={isAdding}
+			bind:this={todoList}
+			on:addTodo={handleAddTodo}
+			on:removeTodo={handleRemoveTodo}
+			on:toggleTodo={handleToggleTodo}
+			let:index
+			let:todo
+		>
+			<span slot="title">{index + 1} - {todo.title}</span>
+		</TodoList>
+	</div>
 {/if}
