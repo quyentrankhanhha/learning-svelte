@@ -5,6 +5,8 @@
 
 	import { afterUpdate, createEventDispatcher } from 'svelte';
 	import Button from '$lib//Button.svelte';
+	import { scale, fly, crossfade } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
 
 	afterUpdate(() => {
 		if (autoScroll) {
@@ -13,11 +15,21 @@
 		autoScroll = false;
 	});
 
+	const [send, receive] = crossfade({
+		duration: 400,
+		fallback(node) {
+			return scale(node, { start: 0.5, duration: 300 });
+		}
+	});
+
 	export let todos = null;
 	export let error = null;
 	export let isLoading = false;
 	export let disabledAdding = false;
 	export let disabledItems = [];
+
+	$: done = todos ? todos.filter((todo) => todo.completed) : [];
+	$: notdone = todos ? todos.filter((todo) => !todo.completed) : [];
 
 	let prevTodos = todos;
 	let inputText = '';
@@ -64,35 +76,40 @@
 				{#if todos.length === 0}
 					<p class="no-items-text">No todos yet</p>
 				{:else}
-					<ul>
-						{#each todos as todo, index (todo.id)}
-							{@const { id, title, completed } = todo}
-							<li>
-								<slot {todo} {index} {handleToggleTodo}>
-									<div class:completed>
-										<label>
-											<input
-												on:input={(event) => {
-													event.currentTarget.checked = completed;
-													handleToggleTodo(id, !completed);
-												}}
-												type="checkbox"
-												checked={completed}
-												disabled={disabledItems.includes(id)}
-											/>
-											<slot name="title">{title}</slot>
-										</label>
-										<button
-											class="remove-todo-button"
-											aria-label="Remove todo: {title}"
-											on:click={() => handleRemoveTodo(id)}
-											disabled={disabledItems.includes(id)}>Remove</button
-										>
-									</div>
-								</slot>
-							</li>
+					<div style:display="flex">
+						{#each [notdone, done] as list, index}
+							<h2>{index === 0 ? 'Todo' : 'Done'}</h2>
+							<ul>
+								{#each list as todo, index (todo.id)}
+									{@const { id, title, completed } = todo}
+									<li animate:flip={{ duration: 300 }}>
+										<slot {todo} {index} {handleToggleTodo}>
+											<div class:completed in:receive={{ key: id }} out:send={{ key: id }}>
+												<label>
+													<input
+														on:input={(event) => {
+															event.currentTarget.checked = completed;
+															handleToggleTodo(id, !completed);
+														}}
+														type="checkbox"
+														checked={completed}
+														disabled={disabledItems.includes(id)}
+													/>
+													<slot name="title">{title}</slot>
+												</label>
+												<button
+													class="remove-todo-button"
+													aria-label="Remove todo: {title}"
+													on:click={() => handleRemoveTodo(id)}
+													disabled={disabledItems.includes(id)}>Remove</button
+												>
+											</div>
+										</slot>
+									</li>
+								{/each}
+							</ul>
 						{/each}
-					</ul>
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -108,6 +125,13 @@
 			>Add</Button
 		>
 	</form>
+
+	{#if todos}
+		<p>
+			Number of todos: {#key todos.length}
+				<span style:display="inline-block" in:fly={{ y: -10 }}>{todos.length}</span>{/key}
+		</p>
+	{/if}
 </div>
 
 <style lang="scss">

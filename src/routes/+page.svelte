@@ -104,7 +104,7 @@
 	<input type="checkbox" bind:checked={showList} /> Show/ Hide List
 </label>
 {#if showList}
-	<div style:max-width="400px">
+	<div>
 		<TodoList
 			{todos}
 			{isLoading}
