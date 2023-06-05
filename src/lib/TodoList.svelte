@@ -16,6 +16,7 @@
 	export let todos = null;
 	export let error = null;
 	export let isLoading = false;
+	export let disabledAdding = false;
 
 	let prevTodos = todos;
 	let inputText = '';
@@ -89,8 +90,15 @@
 		</div>
 	{/if}
 	<form class="add-todo-form" on:submit|preventDefault={handleAddTodo}>
-		<input bind:this={input} bind:value={inputText} placeholder="New to do" />
-		<Button class="add-todo-button" type="submit" disabled={!inputText}>Add</Button>
+		<input
+			bind:this={input}
+			bind:value={inputText}
+			disabled={disabledAdding || !todos}
+			placeholder="New to do"
+		/>
+		<Button class="add-todo-button" type="submit" disabled={!inputText || disabledAdding || !todos}
+			>Add</Button
+		>
 	</form>
 </div>
 
